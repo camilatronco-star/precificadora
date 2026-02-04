@@ -62,15 +62,36 @@ const Sidebar = ({ isOpen, activeMenu = 'Precificadora' }) => {
             top: 0,
             zIndex: 100,
         }}>
+            <style>{`
+                .sidebar-scroll::-webkit-scrollbar {
+                    width: 6px;
+                }
+                .sidebar-scroll::-webkit-scrollbar-track {
+                    background: transparent;
+                }
+                .sidebar-scroll::-webkit-scrollbar-thumb {
+                    background: #050d19;
+                    border-radius: 10px;
+                }
+                .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+                    background: #030811;
+                }
+                .sidebar-scroll::-webkit-scrollbar-button {
+                    display: none;
+                }
+            `}</style>
             <div style={{ display: 'flex', flexDirection: 'column', height: '100%', paddingTop: '16px' }}>
-                <div style={{
-                    padding: '0 16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '4px',
-                    overflowY: 'auto',
-                    flex: 1,
-                }}>
+                <div
+                    className="sidebar-scroll"
+                    style={{
+                        padding: '0 16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
+                        overflowY: 'auto',
+                        flex: 1,
+                    }}
+                >
                     {SIDEBAR_ITEMS.map((item, index) => {
                         const Icon = item.icon;
                         const isActive = item.label === activeMenu;

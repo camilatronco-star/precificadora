@@ -102,10 +102,6 @@ const OrderCard = ({ order, onDelete, onEdit, onApprove, onReject }) => {
                         <EyeIcon style={{ width: '18px' }} />
                     </button>
 
-                    {/* 2. Edit (Pencil) */}
-                    <button onClick={() => onEdit(order)} style={actionButtonStyle} title="Editar">
-                        <PencilSquareIcon style={{ width: '18px' }} />
-                    </button>
 
                     {/* 3. Approve (Check) */}
                     {canApprove && (

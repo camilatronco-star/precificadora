@@ -8,7 +8,7 @@ const BoletaModal = ({ isOpen, onClose, onCreate, onUpdate, referencePrice, prod
 
     const title = isEdit ? 'Detalhes da Boleta' : (isBoleta ? 'Nova Boleta' : 'Nova Ordem');
     const helperText = isEdit
-        ? "Visualize e edite os detalhes. As alterações são salvas automaticamente ao confirmar."
+        ? "Visualize os detalhes. As alterações são salvas automaticamente ao confirmar."
         : (isBoleta
             ? "A boleta é enviada imediatamente para aprovação."
             : "A ordem aguarda o preço de referência atingir o valor definido para então gerar uma boleta.");
@@ -56,7 +56,14 @@ const BoletaModal = ({ isOpen, onClose, onCreate, onUpdate, referencePrice, prod
 
     const handleChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        if (name === 'sellerCpf') {
+            const numericValue = value.replace(/\D/g, '');
+            if (numericValue.length <= 14) {
+                setFormData(prev => ({ ...prev, [name]: numericValue }));
+            }
+        } else {
+            setFormData(prev => ({ ...prev, [name]: value }));
+        }
     };
 
     const isPriceValid = !formData.precoAlvo || parseFloat(formData.precoAlvo) <= referencePrice;
@@ -155,101 +162,119 @@ const BoletaModal = ({ isOpen, onClose, onCreate, onUpdate, referencePrice, prod
                             <input name="nome" value={formData.nome || ''} onChange={handleChange} style={inputStyle} required />
                         </div>
                         <div>
-                            <label style={labelStyle}>Vendedor CPF/CNPJ <span style={{ color: '#ef4444' }}>*</span></label>
-                            <input name="sellerCpf" value={formData.sellerCpf || ''} onChange={handleChange} style={inputStyle} placeholder="000.000.000-00" required />
+                            <label style={labelStyle}>CPF ou CNPJ <span style={{ color: '#ef4444' }}>*</span></label>
+                            <input name="sellerCpf" value={formData.sellerCpf || ''} onChange={handleChange} style={inputStyle} placeholder="Somente números" required />
                         </div>
                     </div>
 
                     <div style={groupStyle}>
                         <div>
                             <label style={labelStyle}>Produto <span style={{ color: '#ef4444' }}>*</span></label>
-                            <select name="product" value={formData.product} onChange={handleChange} style={inputStyle}>
+                            <select name="product" value={formData.product} onChange={handleChange} style={{ ...inputStyle, backgroundColor: formData.isContextual ? '#f3f4f6' : '#FFFFFF', cursor: formData.isContextual ? 'not-allowed' : 'default' }} disabled={formData.isContextual}>
                                 <option value="Soja">Soja</option>
                                 <option value="Milho">Milho</option>
                             </select>
                         </div>
                         <div>
-                            <label style={labelStyle}>Safra <span style={{ color: '#ef4444' }}>*</span></label>
-                            <input name="safra" value={formData.safra || ''} onChange={handleChange} style={inputStyle} />
+                            <label style={labelStyle}>Volume (kg) <span style={{ color: '#ef4444' }}>*</span></label>
+                            <input type="number" name="volume" value={formData.volume || ''} onChange={handleChange} style={inputStyle} required />
                         </div>
                     </div>
 
                     <div style={groupStyle}>
-                        <div>
-                            <label style={labelStyle}>Volume (ONLY kg) <span style={{ color: '#ef4444' }}>*</span></label>
-                            <input type="number" name="volume" value={formData.volume || ''} onChange={handleChange} style={inputStyle} required />
-                        </div>
                         <div>
                             <label style={labelStyle}>PREÇO PRODUTOR (R$/sc) <span style={{ color: '#ef4444' }}>*</span></label>
                             <input type="number" step="0.01" name="precoAlvo" value={formData.precoAlvo || ''} onChange={handleChange} style={inputStyle} required />
                             {!isPriceValid && (
                                 <div style={{ color: '#ef4444', fontSize: '11px', marginTop: '6px', fontWeight: 'bold' }}>
-                                    Atenção: Acima do preço de referência ({referencePrice?.toFixed(2)})
+                                    Atenção: O valor é superior ao preço de referência spot ({referencePrice?.toFixed(2)})
                                 </div>
+                            )}
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Data de Entrega <span style={{ color: '#ef4444' }}>*</span></label>
+                            <input
+                                type="date"
+                                name="dataEntrega"
+                                value={formData.dataEntrega || formData.deliveryStartDate || ''}
+                                onChange={handleChange}
+                                style={inputStyle}
+                                required
+                                min={formData.isContextual ? formData.deliveryStartDate : undefined}
+                                max={formData.isContextual ? formData.deliveryEndDate : undefined}
+                            />
+                            {formData.isContextual && (
+                                <div style={{ fontSize: '10px', color: 'var(--color-neutral-text-secondary)', marginTop: '4px' }}>Restrito ao período do modelo</div>
                             )}
                         </div>
                     </div>
 
-                    <div style={groupStyle}>
-                        <div>
-                            <label style={labelStyle}>Margem (R$/sc)</label>
-                            <input type="number" step="0.01" name="margem" value={formData.margem} onChange={handleChange} style={inputStyle} />
-                        </div>
-                        <div>
-                            <label style={labelStyle}>Referência de Mercado</label>
-                            <select name="market_reference" value={formData.market_reference} onChange={handleChange} style={inputStyle}>
-                                <option value="CBOT">CBOT (Chicago)</option>
-                                {formData.product === 'Milho' && <option value="B3">B3 (Brasil)</option>}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div style={groupStyle}>
-                        <div>
-                            <label style={labelStyle}>Mês Liquidação Chicago</label>
-                            <input name="mes_liquidacao_chicago" value={formData.mes_liquidacao_chicago || ''} onChange={handleChange} style={inputStyle} placeholder="Ex: MAR/24" />
-                        </div>
-                        {formData.market_reference === 'B3' && (
-                            <div>
-                                <label style={labelStyle}>Mês Liquidação B3</label>
-                                <input name="mes_liquidacao_b3" value={formData.mes_liquidacao_b3 || ''} onChange={handleChange} style={inputStyle} placeholder="Ex: CCMH24" />
+                    {!formData.isContextual && (
+                        <>
+                            <div style={groupStyle}>
+                                <div>
+                                    <label style={labelStyle}>Safra <span style={{ color: '#ef4444' }}>*</span></label>
+                                    <input name="safra" value={formData.safra || ''} onChange={handleChange} style={inputStyle} />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Margem (R$/sc)</label>
+                                    <input type="number" step="0.01" name="margem" value={formData.margem} onChange={handleChange} style={inputStyle} />
+                                </div>
                             </div>
-                        )}
-                    </div>
 
-                    <div style={groupStyle}>
-                        <div>
-                            <label style={labelStyle}>Observação Boleta</label>
-                            <textarea name="descricao" value={formData.descricao || ''} onChange={handleChange} style={{ ...inputStyle, minHeight: '60px' }} />
-                        </div>
-                        <div>
-                            <label style={labelStyle}>Observação Frete</label>
-                            <textarea name="descricao_frete" value={formData.descricao_frete || ''} onChange={handleChange} style={{ ...inputStyle, minHeight: '60px' }} />
-                        </div>
-                    </div>
+                            <div style={groupStyle}>
+                                <div>
+                                    <label style={labelStyle}>Referência de Mercado</label>
+                                    <select name="market_reference" value={formData.market_reference} onChange={handleChange} style={inputStyle}>
+                                        <option value="CBOT">CBOT (Chicago)</option>
+                                        {formData.product === 'Milho' && <option value="B3">B3 (Brasil)</option>}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Mês Liquidação Chicago</label>
+                                    <input name="mes_liquidacao_chicago" value={formData.mes_liquidacao_chicago || ''} onChange={handleChange} style={inputStyle} placeholder="Ex: MAR/24" />
+                                </div>
+                            </div>
+                        </>
+                    )}
 
-                    <div style={{ padding: '24px', border: '1px solid var(--color-neutral-border)', borderRadius: '8px', marginBottom: '32px' }}>
+                    {formData.isContextual && (
+                        <div style={{ ...groupStyle, gridTemplateColumns: '1fr 1fr' }}>
+                            <div>
+                                <label style={labelStyle}>Destino</label>
+                                <input name="porto" value={formData.porto || ''} style={{ ...inputStyle, backgroundColor: '#f3f4f6' }} readOnly />
+                            </div>
+                            <div>
+                                <label style={labelStyle}>Ref. Mercado</label>
+                                <input name="market_reference" value={formData.market_reference || ''} style={{ ...inputStyle, backgroundColor: '#f3f4f6' }} readOnly />
+                            </div>
+                        </div>
+                    )}
+
+                    <div style={{ padding: '20px', border: '1px solid var(--color-neutral-border)', borderRadius: '8px', marginBottom: '24px', opacity: formData.isContextual ? 0.7 : 1 }}>
                         <h4 style={sectionTitleStyle}>Logística & Detalhes</h4>
                         <div style={groupStyle}>
                             <div>
                                 <label style={labelStyle}>Local de Entrega</label>
-                                <input name="localEntrega" value={formData.localEntrega || ''} onChange={handleChange} style={inputStyle} />
+                                <input name="localEntrega" value={formData.localEntrega || ''} onChange={handleChange} style={{ ...inputStyle, backgroundColor: formData.isContextual ? '#f3f4f6' : '#FFFFFF' }} readOnly={formData.isContextual} />
                             </div>
                             <div>
                                 <label style={labelStyle}>Data Pagamento</label>
                                 <input type="date" name="dataPagamento" value={formData.dataPagamento || ''} onChange={handleChange} style={inputStyle} />
                             </div>
                         </div>
-                        <div style={groupStyle}>
-                            <div>
-                                <label style={labelStyle}>Porto</label>
-                                <input name="porto" value={formData.porto || ''} onChange={handleChange} style={inputStyle} />
+                        {!formData.isContextual && (
+                            <div style={groupStyle}>
+                                <div>
+                                    <label style={labelStyle}>Porto</label>
+                                    <input name="porto" value={formData.porto || ''} onChange={handleChange} style={inputStyle} />
+                                </div>
+                                <div>
+                                    <label style={labelStyle}>Filial</label>
+                                    <input name="filial" value={formData.filial || ''} onChange={handleChange} style={inputStyle} />
+                                </div>
                             </div>
-                            <div>
-                                <label style={labelStyle}>Filial</label>
-                                <input name="filial" value={formData.filial || ''} onChange={handleChange} style={inputStyle} />
-                            </div>
-                        </div>
+                        )}
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '16px' }}>

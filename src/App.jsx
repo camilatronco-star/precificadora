@@ -10,7 +10,12 @@ import ConfirmModal from './components/ConfirmModal';
 import Toast from './components/Toast';
 import { PRICING_STATES } from './logic/constants';
 import logoMerx from './assets/logo_merx_real.png';
+import { PlusIcon } from '@heroicons/react/24/outline';
 import './styles/designSystem.css';
+
+// --- ADDITIVE PRICE FORMATION IMPORTS ---
+import { PriceFormationModel } from './parity/PriceFormationModel';
+import PriceFormationSection from './parity/PriceFormationSection';
 
 const INITIAL_MARKET_DATA = { chicagoPrice: 1320.75, fxRate: 5.8240 };
 const INITIAL_CONFIGS = { fixedCosts: 120.00, logisticsCosts: 350.00, interestRate: 2.1, freightType: 'sem frete' };
@@ -29,6 +34,15 @@ const App = () => {
     const [lastUpdate, setLastUpdate] = useState(new Date().toLocaleTimeString());
     const [toasts, setToasts] = useState([]);
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+    // --- ADDITIVE PRICE FORMATION STATE ---
+    const [formationModels, setFormationModels] = useState([]);
+    const [activeTab, setActiveTab] = useState('formation');
+    const [formationFilters, setFormationFilters] = useState({
+        product: 'all',
+        destination: '',
+        origin: ''
+    });
 
     useEffect(() => {
         if (notifications.length > 0) {
@@ -97,6 +111,45 @@ const App = () => {
         addToast(`${componentName} criada com sucesso`, "success");
     };
 
+    // --- ADDITIVE PRICE FORMATION HANDLERS ---
+    const handleSaveFormation = (data, id) => {
+        if (id) {
+            setFormationModels(prev => prev.map(m => {
+                if (m.id === id) {
+                    m.update(data);
+                    return m;
+                }
+                return m;
+            }));
+            addToast("Modelo de formação atualizado", "success");
+        } else {
+            const newModel = new PriceFormationModel(null, data);
+            setFormationModels(prev => [...prev, newModel]);
+            addToast("Modelo de formação criado com sucesso", "success");
+        }
+    };
+
+    const handleDeleteFormation = (id) => {
+        setFormationModels(prev => prev.filter(m => m.id !== id));
+        addToast("Modelo removido", "success");
+    };
+
+    const handleLaunchFromFormation = (model) => {
+        const preFilledData = {
+            product: model.product === 'soybean' ? 'Soja' : 'Milho',
+            precoAlvo: model.calculatePrice().toFixed(2),
+            localEntrega: model.origin,
+            porto: model.destination,
+            market_reference: model.market,
+            deliveryStartDate: model.deliveryStartDate,
+            deliveryEndDate: model.deliveryEndDate,
+            isContextual: true
+        };
+        setEditingItem(preFilledData);
+        setModalType('boleta');
+        setIsModalOpen(true);
+    };
+
     const contentMargin = isSidebarOpen ? '280px' : '0px';
 
     return (
@@ -116,58 +169,161 @@ const App = () => {
                     </div>
                 </header>
 
-                <main style={{ padding: '32px 40px', maxWidth: '1600px', width: '100%', margin: '0 auto', backgroundColor: '#FFFFFF' }}>
-                    <div style={{ marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <h1 style={{ margin: 0, fontSize: '32px', fontWeight: 700, color: 'var(--color-neutral-text-primary)' }}>Precificadora</h1>
-                            <div style={{ fontSize: '14px', color: 'var(--color-neutral-text-secondary)' }}>Início {'>'} Precificadora</div>
+                <main style={{ height: 'calc(100vh - 64px)', display: 'flex', flexDirection: 'column', backgroundColor: '#FFFFFF', overflow: 'hidden' }}>
+                    <div style={{ padding: '24px 40px 16px 40px', borderBottom: '1px solid var(--color-neutral-border)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: 'var(--color-neutral-text-primary)' }}>Precificadora</h1>
+                                <div style={{ fontSize: '13px', color: 'var(--color-neutral-text-secondary)' }}>Início {'>'} Precificadora</div>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', backgroundColor: 'white', padding: '4px', borderRadius: '8px', border: '1px solid var(--color-neutral-border)', height: 'fit-content' }}>
+                                {['Soja', 'Milho'].map(p => (
+                                    <button key={p} onClick={() => setSelectedProduct(p)} style={{ border: 'none', padding: '4px 12px', borderRadius: '6px', backgroundColor: selectedProduct === p ? 'var(--color-brand-primary)' : 'transparent', color: selectedProduct === p ? 'white' : 'var(--color-neutral-text-secondary)', fontSize: '13px', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>{p}</button>
+                                ))}
+                            </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '8px', backgroundColor: 'white', padding: '4px', borderRadius: '8px', border: '1px solid var(--color-neutral-border)', height: 'fit-content' }}>
-                            {['Soja', 'Milho'].map(p => (
-                                <button key={p} onClick={() => setSelectedProduct(p)} style={{ border: 'none', padding: '6px 16px', borderRadius: '6px', backgroundColor: selectedProduct === p ? 'var(--color-brand-primary)' : 'transparent', color: selectedProduct === p ? 'white' : 'var(--color-neutral-text-secondary)', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}>{p}</button>
-                            ))}
-                        </div>
-                    </div>
 
-                    <section style={{ marginBottom: '40px' }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '12px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
                             <ReferencePriceDisplay priceBrl={referencePrice} priceUsd={referencePriceUsd} unit="sc" label="Preço Spot (Referência)" />
                             <MarketDataCard cbotPrice={marketData.chicagoPrice} fxRate={marketData.fxRate} />
                             <PriceCompositionCard fixedCosts={configs.fixedCosts} logisticsCosts={configs.logisticsCosts} interestRate={configs.interestRate} />
                         </div>
-                        <div style={{ textAlign: 'right', fontSize: '12px', color: 'var(--color-neutral-text-secondary)' }}>Última atualização: {lastUpdate}</div>
-                    </section>
-
-                    <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', justifyContent: 'flex-end' }}>
-                        <button className="btn" onClick={() => { setEditingItem(null); setModalType('ordem'); setIsModalOpen(true); }} style={{ backgroundColor: 'transparent', border: '2px solid var(--color-brand-primary)', color: 'var(--color-brand-primary)', padding: '12px 24px', fontSize: '15px' }}>Nova Ordem</button>
-                        <button className="btn btn-primary" onClick={() => { setEditingItem(null); setModalType('boleta'); setIsModalOpen(true); }} style={{ padding: '12px 24px', fontSize: '15px' }}>Nova Boleta</button>
                     </div>
 
-                    <div style={{ marginBottom: '40px' }}>
-                        <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '16px' }}>Ordens <span style={{ fontWeight: 400, color: 'var(--color-neutral-text-secondary)', fontSize: '16px' }}>(Aguardando Preço Alvo)</span></h2>
-                        {awaitingPrice.length > 0 ? (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
-                                {awaitingPrice.map(item => <OrderCard key={item.id} order={item} onDelete={setConfirmDeleteId} onEdit={(i) => { setEditingItem(i); setIsModalOpen(true); }} />)}
-                            </div>
-                        ) : <div style={{ padding: '32px', backgroundColor: 'white', borderRadius: '8px', border: '1px dashed var(--color-neutral-border)', textAlign: 'center', color: 'var(--color-neutral-text-secondary)' }}>Nenhuma ordem monitorando o mercado.</div>}
-                    </div>
+                    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+                        {/* Tab Headers */}
+                        <div style={{ padding: '0 40px', borderBottom: '1px solid var(--color-neutral-border)', backgroundColor: '#FFFFFF', display: 'flex', gap: '32px' }}>
+                            {[
+                                { id: 'formation', label: 'Formação de Preço', count: formationModels.length },
+                                { id: 'orders', label: 'Ordens', count: awaitingPrice.length },
+                                { id: 'boletas', label: 'Boletas Disparadas', count: boletasDisparadas.length }
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    style={{
+                                        padding: '16px 0',
+                                        background: 'none',
+                                        border: 'none',
+                                        borderBottom: activeTab === tab.id ? '2px solid var(--color-brand-primary)' : '2px solid transparent',
+                                        color: activeTab === tab.id ? '#003366' : 'var(--color-neutral-text-secondary)',
+                                        fontSize: '14px',
+                                        fontWeight: 400,
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        transition: 'all 0.2s',
+                                        position: 'relative',
+                                        marginBottom: '-1px'
+                                    }}
+                                >
+                                    {tab.label}
+                                    {tab.count > 0 && (
+                                        <span style={{
+                                            backgroundColor: '#f3f4f6',
+                                            color: '#6b7280',
+                                            fontSize: '11px',
+                                            padding: '2px 8px',
+                                            borderRadius: '12px',
+                                            fontWeight: 700
+                                        }}>
+                                            {tab.count}
+                                        </span>
+                                    )}
+                                </button>
+                            ))}
+                        </div>
 
-                    <div>
-                        <h2 style={{ fontSize: '20px', fontWeight: 600, marginBottom: '16px' }}>Boletas Disparadas</h2>
-                        {boletasDisparadas.length > 0 ? (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
-                                {boletasDisparadas.map(item => (
-                                    <OrderCard
-                                        key={item.id}
-                                        order={item}
-                                        onDelete={setConfirmDeleteId}
-                                        onEdit={(i) => { setEditingItem(i); setIsModalOpen(true); }}
-                                        onApprove={handleApproveAction}
-                                        onReject={handleRejectAction}
-                                    />
-                                ))}
-                            </div>
-                        ) : <div style={{ padding: '32px', backgroundColor: 'white', borderRadius: '8px', border: '1px dashed var(--color-neutral-border)', textAlign: 'center', color: 'var(--color-neutral-text-secondary)' }}>Nenhuma boleta gerada ainda.</div>}
+                        {/* Tab Content Area */}
+                        <div style={{ flex: 1, overflowY: 'auto', padding: '32px 40px' }}>
+                            {activeTab === 'formation' && (
+                                <PriceFormationSection
+                                    models={formationModels}
+                                    onSave={handleSaveFormation}
+                                    onDelete={handleDeleteFormation}
+                                    onLaunchBoleta={handleLaunchFromFormation}
+                                    filters={formationFilters}
+                                    setFilters={setFormationFilters}
+                                />
+                            )}
+
+                            {activeTab === 'orders' && (
+                                <div style={{ width: '100%' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '16px' }}>
+                                        <button
+                                            className="btn btn-primary"
+                                            onClick={() => { setEditingItem(null); setModalType('ordem'); setIsModalOpen(true); }}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                padding: '8px 16px',
+                                                fontSize: '13px',
+                                                fontWeight: 700,
+                                                borderRadius: '6px'
+                                            }}
+                                        >
+                                            <PlusIcon style={{ width: '16px', height: '16px', strokeWidth: 2 }} />
+                                            Nova Ordem
+                                        </button>
+                                    </div>
+                                    <div style={{ fontSize: '12px', color: 'var(--color-neutral-text-secondary)', marginBottom: '24px', lineHeight: '1.4' }}>
+                                        Ordens monitoram o mercado e disparam automaticamente quando o preço-alvo é atingido.
+                                    </div>
+                                    {awaitingPrice.length > 0 ? (
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+                                            {awaitingPrice.map(item => <OrderCard key={item.id} order={item} onDelete={setConfirmDeleteId} onEdit={(i) => { setEditingItem(i); setIsModalOpen(true); }} />)}
+                                        </div>
+                                    ) : (
+                                        <div style={{ padding: '64px', backgroundColor: 'white', borderRadius: '12px', border: '1px dashed var(--color-neutral-border)', textAlign: 'center', color: 'var(--color-neutral-text-secondary)', width: '100%' }}>
+                                            Nenhuma ordem ativa.
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {activeTab === 'boletas' && (
+                                <div style={{ width: '100%' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '24px' }}>
+                                        <button
+                                            className="btn btn-primary"
+                                            onClick={() => { setEditingItem(null); setModalType('boleta'); setIsModalOpen(true); }}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px',
+                                                padding: '8px 16px',
+                                                fontSize: '13px',
+                                                fontWeight: 700,
+                                                borderRadius: '6px'
+                                            }}
+                                        >
+                                            <PlusIcon style={{ width: '16px', height: '16px', strokeWidth: 2 }} />
+                                            Nova Boleta
+                                        </button>
+                                    </div>
+                                    {boletasDisparadas.length > 0 ? (
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
+                                            {boletasDisparadas.map(item => (
+                                                <OrderCard
+                                                    key={item.id}
+                                                    order={item}
+                                                    onDelete={setConfirmDeleteId}
+                                                    onEdit={(i) => { setEditingItem(i); setIsModalOpen(true); }}
+                                                    onApprove={handleApproveAction}
+                                                    onReject={handleRejectAction}
+                                                />
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div style={{ padding: '64px', backgroundColor: 'white', borderRadius: '12px', border: '1px dashed var(--color-neutral-border)', textAlign: 'center', color: 'var(--color-neutral-text-secondary)', width: '100%' }}>
+                                            Nenhuma boleta enviada.
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </main>
             </div>
