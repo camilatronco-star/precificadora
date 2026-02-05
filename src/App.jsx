@@ -268,9 +268,7 @@ const App = () => {
                                             Nova Ordem
                                         </button>
                                     </div>
-                                    <div style={{ fontSize: '12px', color: 'var(--color-neutral-text-secondary)', marginBottom: '24px', lineHeight: '1.4' }}>
-                                        Ordens monitoram o mercado e disparam automaticamente quando o preço-alvo é atingido.
-                                    </div>
+
                                     {awaitingPrice.length > 0 ? (
                                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px' }}>
                                             {awaitingPrice.map(item => <OrderCard key={item.id} order={item} onDelete={setConfirmDeleteId} onEdit={(i) => { setEditingItem(i); setIsModalOpen(true); }} />)}

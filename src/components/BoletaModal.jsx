@@ -6,7 +6,9 @@ const BoletaModal = ({ isOpen, onClose, onCreate, onUpdate, referencePrice, prod
     const isBoleta = type === 'boleta';
     const isEdit = !!initialData;
 
-    const title = isEdit ? 'Detalhes da Boleta' : (isBoleta ? 'Nova Boleta' : 'Nova Ordem');
+    const title = isEdit
+        ? (isBoleta ? 'Detalhes da Boleta' : 'Detalhes da Ordem')
+        : (isBoleta ? 'Nova Boleta' : 'Nova Ordem');
     const helperText = isEdit
         ? "Visualize os detalhes. As alterações são salvas automaticamente ao confirmar."
         : (isBoleta
@@ -151,7 +153,7 @@ const BoletaModal = ({ isOpen, onClose, onCreate, onUpdate, referencePrice, prod
                 <div style={{ padding: '28px 32px 20px 32px', borderBottom: '1px solid var(--color-neutral-border)' }}>
                     <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 'bold' }}>{title}</h2>
                     <div style={{ marginTop: '10px', fontSize: '14px', color: 'var(--color-neutral-text-secondary)', lineHeight: '1.5' }}>
-                        {helperText}
+                        {!isBoleta ? "Ordens monitoram o mercado e disparam automaticamente quando o preço-alvo é atingido." : helperText}
                     </div>
                 </div>
 
