@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth0 } from "@auth0/auth0-react";
 import { usePricingEngine } from './hooks/usePricingEngine';
 import Sidebar from './components/Sidebar';
 import ReferencePriceDisplay from './components/ReferencePriceDisplay';
@@ -11,6 +12,7 @@ import Toast from './components/Toast';
 import { PRICING_STATES } from './logic/constants';
 import logoMerx from './assets/logo_merx_real.png';
 import { PlusIcon } from '@heroicons/react/24/outline';
+import Login from './components/Login';
 import './styles/designSystem.css';
 
 // --- ADDITIVE PRICE FORMATION IMPORTS ---
@@ -38,6 +40,7 @@ const App = () => {
     // --- ADDITIVE PRICE FORMATION STATE ---
     const [formationModels, setFormationModels] = useState([]);
     const [activeTab, setActiveTab] = useState('formation');
+    const { isAuthenticated, isLoading, user, logout } = useAuth0();
     const [formationFilters, setFormationFilters] = useState({
         product: 'all',
         destination: '',
@@ -152,6 +155,18 @@ const App = () => {
 
     const contentMargin = isSidebarOpen ? '280px' : '0px';
 
+    if (isLoading) {
+        return (
+            <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ color: 'var(--color-brand-primary)', fontWeight: 600 }}>Carregando...</div>
+            </div>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return <Login />;
+    }
+
     return (
         <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#FFFFFF' }}>
             <Sidebar isOpen={isSidebarOpen} />
@@ -166,6 +181,32 @@ const App = () => {
                             alt="MERX"
                             style={{ height: '22px', border: 'none', background: 'transparent' }}
                         />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        {user && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', borderRight: '1px solid var(--color-neutral-border)', paddingRight: '16px' }}>
+                                <img src={user.picture} alt={user.name} style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
+                                <div style={{ textAlign: 'right' }}>
+                                    <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--color-neutral-text-primary)' }}>{user.name}</div>
+                                    <div style={{ fontSize: '11px', color: 'var(--color-neutral-text-secondary)' }}>{user.email}</div>
+                                </div>
+                            </div>
+                        )}
+                        <button
+                            onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}
+                            style={{
+                                background: 'none',
+                                border: '1px solid var(--color-neutral-border)',
+                                borderRadius: '6px',
+                                padding: '6px 12px',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                color: 'var(--color-neutral-text-secondary)'
+                            }}
+                        >
+                            Sair
+                        </button>
                     </div>
                 </header>
 
