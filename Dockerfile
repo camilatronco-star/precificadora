@@ -14,8 +14,9 @@ RUN npm ci
 COPY . .
 
 # CRITICAL: Fix for Windows line ending issues in scripts
-# This ensures that even if node_modules were partially copied, they work on Linux.
-RUN find node_modules/.bin/ -type l -or -type f -exec sed -i 's/\r$//' {} +
+# sed -i can strip the executable bit, so we restore it with chmod afterwards.
+RUN find node_modules/.bin/ -type f -exec sed -i 's/\r$//' {} + && \
+    chmod -R +x node_modules/.bin
 
 # Build arguments for environment variables
 ARG VITE_API_URL
