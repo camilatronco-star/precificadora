@@ -1,11 +1,20 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth0 } from "@auth0/auth0-react";
 import logoMerx from '../assets/logo_merx_real.png';
-
-const cornBg = "https://images.unsplash.com/photo-1552423158-95e278121f67?auto=format&fit=crop&q=80&w=2000";
+import loginBg from '../assets/login_bg.jpg';
 
 const Login = () => {
     const { loginWithRedirect } = useAuth0();
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 1024);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     const handleGoogleLogin = () => {
         loginWithRedirect({
@@ -18,14 +27,32 @@ const Login = () => {
     return (
         <div style={{
             display: 'flex',
+            flexDirection: isMobile ? 'column-reverse' : 'row',
             height: '100vh',
             width: '100vw',
             overflow: 'hidden',
             fontFamily: "'Inter', sans-serif"
         }}>
-            {/* Left Panel: Login Content */}
+            {/* Left Panel: Background Image (Moved to Left) */}
             <div style={{
-                flex: 1,
+                flex: isMobile ? 'none' : 1,
+                height: isMobile ? '40%' : '100%',
+                backgroundColor: '#f3f4f6'
+            }}>
+                <img
+                    src={loginBg}
+                    alt="Cena rural"
+                    style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                    }}
+                />
+            </div>
+
+            {/* Right Panel: Login Content (Moved to Right) */}
+            <div style={{
+                flex: isMobile ? 1 : 1,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -124,29 +151,14 @@ const Login = () => {
                 <div style={{
                     position: 'absolute',
                     bottom: '24px',
-                    left: '40px',
+                    right: isMobile ? 'auto' : '40px',
+                    left: isMobile ? '50%' : 'auto',
+                    transform: isMobile ? 'translateX(-50%)' : 'none',
                     fontSize: '12px',
                     color: '#6b7280'
                 }}>
                     © MerX 2026
                 </div>
-            </div>
-
-            {/* Right Panel: Background Image */}
-            <div style={{
-                flex: 1,
-                height: '100%',
-                backgroundColor: '#f3f4f6'
-            }}>
-                <img
-                    src={cornBg}
-                    alt="Plantação de milho"
-                    style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover'
-                    }}
-                />
             </div>
         </div>
     );
