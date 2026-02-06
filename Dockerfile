@@ -14,7 +14,7 @@ COPY . .
 
 # Ensure binaries are executable
 RUN chmod +x node_modules/.bin/vite
-
+RUN cat -A node_modules/.bin/vite | head
 # Build arguments for environment variables
 ARG VITE_API_URL
 ARG VITE_API_KEY
