@@ -12,6 +12,9 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Ensure binaries are executable
+RUN chmod +x node_modules/.bin/vite
+
 # Build arguments for environment variables
 ARG VITE_API_URL
 ARG VITE_API_KEY
