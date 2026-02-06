@@ -55,7 +55,7 @@ const Login = () => {
                         color: '#111827',
                         margin: '0 0 12px 0'
                     }}>
-                        Seja Bem-vindo(a)!
+                        Seja Bem-vindo(a)
                     </h1>
                     <p style={{
                         fontSize: '14px',
